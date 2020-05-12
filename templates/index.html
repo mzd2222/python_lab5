@@ -1,0 +1,237 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>hello world</title>
+  <script src="{% static 'js/jquery-3.5.1.min.js' %}"></script>
+</head>
+<body>
+
+  <h3>添加</h3>
+  <label for="spell">拼写</label>
+  <input type="text" name="spell" id="spell">
+  <br>
+  <label for="tp">类型及意思</label>
+  <input type="text" name="tp" id="tp">
+  <br>
+  <label for="chinese">例句</label>
+  <input type="text" name="chinese" id="chinese">
+  <br>
+
+  <button onclick="add_words()">添加</button>
+
+  <br>
+  <h3>查找、删除及修改</h3>
+  <p style="color: red">修改方式：直接修改文本框中内容，然后点提交</p>
+  <label for="spell2">spell</label>
+  <input type="text" name="输入：" id="spell2">
+  <button onclick="search_word()" id="007">查找</button>
+  <br>
+  <br>
+  <div id="008">
+
+    <div id="words">
+
+    </div>
+  </div>
+
+
+</body>
+
+<script>
+
+  var words;
+
+  // 增
+  function add_words(){
+      $.ajax({
+          url: 'words/add/',
+          method: 'POST',
+          data: {"spell":$("#spell").val(),
+                 "tp":$("#tp").val(),
+                 "chinese":$("#chinese").val(),
+                 },
+          success: function (data) {
+              if(data['state'] == 1){
+                  alert('添加成功')
+              }
+              else{
+                  alert('已存在')
+              }
+          },
+          error: function (data) {
+              alert("检查网络")
+          }
+      })
+  }
+
+  // 查
+  function search_word(){
+      $.ajax({
+          url: 'words/search/',
+          method: 'GET',
+          data: {"spell":$("#spell2").val()},
+          success: function (data) {
+              if(data['state'] == 1){
+                  $("#008").html("<div id='words'></div>")
+                  {#alert('查询成功');#}
+                  {#console.log(data['words']);#}
+                  words = JSON.parse(data['words']);
+                  show_words(words)
+
+                  var btn1 = $('<button>', {
+                      text: "a~z排序",
+                      id: "btn1",
+
+                  })
+                  var btn2 = $('<button>', {
+                      text: "z~a排序",
+                      id: "btn2",
+                  })
+
+                  btn1.attr("onclick", "zheng()")
+                  btn2.attr("onclick", "fan()")
+
+                  btn2.prependTo('#008')
+                  btn1.prependTo('#008')
+
+              }
+              else{
+                  alert('没有单词')
+              }
+          },
+          error: function (data) {
+              alert("检查网络")
+          }
+      })
+  }
+
+  // a~z正向显示
+  function zheng() {
+      $("#words").html("")
+      words.sort((a, b)=> a.pk.charCodeAt(0)-b.pk.charCodeAt(0)); //a~z 排序
+      show_words(words)
+  }
+
+  // z~a反向显示
+  function fan() {
+      $("#words").html("")
+      words.sort((a, b)=> b.pk.charCodeAt(0)-a.pk.charCodeAt(0)); //z~a 排序
+      show_words(words)
+  }
+
+  // 删
+  function delete_word(word_spell) {
+      $.ajax({
+          url: 'words/delete/',
+          method: 'POST',
+          data: {
+              "spell": word_spell,
+          },
+          success: function (data) {
+              if(data['state'] == 1){
+                  alert('删除成功');
+                  $("#007").click(); // 更新单词表
+              }
+              else{
+                  alert('删除失败')
+              }
+          },
+          error: function (data) {
+              alert("检查网络")
+          }
+      })
+  }
+
+  // 改
+  function update_word(i, old_spell) {
+      {#console.log($('#spell' + (i+3)).val());#}
+      {#console.log($('#tp' + (i+3)).val());#}
+      {#console.log($('#chinese' + (i+3)).text());#}
+
+      $.ajax({
+          url: 'words/update/',
+          method: 'POST',
+          data: {
+              "new_spell": $('#spell' + (i+3)).val(),
+              "old_spell": old_spell,
+              "tp": $('#tp' + (i+3)).val(),
+              "chinese": $('#chinese' + (i+3)).text(),
+                 },
+          success: function (data) {
+              if(data['state'] == 1){
+                  alert('更新成功')
+              }
+              else{
+                  alert('更新失败')
+              }
+          },
+          error: function (data) {
+              alert("检查网络")
+          }
+      })
+  }
+
+  // 显示查询到的词
+  function show_words(words_list){
+      for (var i = 0; i < words_list.length; i++) {
+            {#console.log(words_list[i])#}
+            var spell_l = $('<label>',{
+                for: "spell" + (i+3),
+                text: "拼写:"
+            });
+            var spell = $('<input>',{
+                id: "spell" + (i+3),
+                value: words_list[i]['pk'],
+                width: 150
+            });
+
+            var tp_l = $('<label>',{
+                for: "tp" + (i+3),
+                text: "词性及翻译:"
+            });
+            var tp = $('<input>',{
+                id: "tp" + (i+3),
+                value: words_list[i]['fields']['tp'],
+                width: 250
+            });
+
+            var chinese_l = $('<label>',{
+                for: "chinese" + (i+3),
+                text: " 例子:"
+            });
+            var chinese = $('<textarea>',{
+                id: "chinese" + (i+3),
+                text: words_list[i]['fields']['chinese'],
+                width: 520,
+                height: 100
+            });
+
+
+            var div = $('<div>')
+
+            div.append(spell_l)
+            div.append(spell)
+            div.append(tp_l)
+            div.append(tp)
+            div.append("<br>")
+            div.append(chinese_l)
+            div.append("<br>")
+            div.append(chinese)
+            div.append("<br>")
+            div.append("<button onclick=delete_word('" + words_list[i]['pk'] +"')>删除此单词</button>")
+
+            div.append("<button onclick=update_word(" + i + ",'" + words_list[i]['pk'] + "')>提交修改</button>")
+
+            div.append("<br>")
+            div.append("<br>")
+
+            div.appendTo('#words')
+
+        }
+  }
+
+</script>
+
+</html>
